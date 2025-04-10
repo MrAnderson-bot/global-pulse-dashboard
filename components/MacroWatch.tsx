@@ -69,8 +69,11 @@ const MacroWatch = () => {
   const fetchFREDData = async (seriesId: string): Promise<FREDObservation[]> => {
     try {
       const response = await fetch(`/api/fred?series_id=${seriesId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data: FREDResponse = await response.json();
-      return data.observations;
+      return data?.observations || [];
     } catch (error) {
       console.error(`Error fetching FRED data for ${seriesId}:`, error);
       return [];
@@ -95,13 +98,15 @@ const MacroWatch = () => {
         // VIX (proxy)
         let vixValue = 'N/A';
         try {
-          const proxyRes = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/^VIX'));
-          if (!proxyRes.ok) {
+          const response = await fetch('/api/vix');
+          if (!response.ok) {
             throw new Error('Failed to fetch VIX data');
           }
-          const proxyJson = await proxyRes.json();
-          const vixJson = JSON.parse(proxyJson.contents);
-          vixValue = vixJson?.chart?.result?.[0]?.meta?.regularMarketPrice || 'N/A';
+          const data = await response.json();
+          if ('error' in data) {
+            throw new Error(data.error);
+          }
+          vixValue = data.vix?.toString() || 'N/A';
           setVix(vixValue);
         } catch (vixError) {
           console.error('Error fetching VIX data:', vixError);
@@ -130,9 +135,9 @@ const MacroWatch = () => {
 
         // Update the state with all the data
         setMacroData({
-          gdp: gdpData[gdpData.length - 1]?.value || 'N/A',
-          cpi: cpiData[cpiData.length - 1]?.value || 'N/A',
-          unemployment: unemploymentData[unemploymentData.length - 1]?.value || 'N/A',
+          gdp: gdpData?.length > 0 ? gdpData[gdpData.length - 1]?.value || 'N/A' : 'N/A',
+          cpi: cpiData?.length > 0 ? cpiData[cpiData.length - 1]?.value || 'N/A' : 'N/A',
+          unemployment: unemploymentData?.length > 0 ? unemploymentData[unemploymentData.length - 1]?.value || 'N/A' : 'N/A',
           fearGreed: fearGreedClassification,
           fearGreedValue,
           vix: vixValue.toString(),
