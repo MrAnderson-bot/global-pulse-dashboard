@@ -16,24 +16,38 @@ interface FREDResponse {
   observations: FREDObservation[];
 }
 
+interface MacroData {
+  gdp: string;
+  cpi: string;
+  unemployment: string;
+  fearGreed: string;
+  fearGreedValue: string;
+  vix: string;
+  recessionRisk: string;
+  centralBanks: Bank[];
+}
+
 const MacroWatch = () => {
   const [seriesId, setSeriesId] = useState('GDP');
   const [observations, setObservations] = useState<FREDObservation[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const [macroData, setMacroData] = useState<{
-    fearGreed: string;
-    fearGreedValue: string;
-    vix: string;
-    recessionRisk: string;
-    centralBanks: Bank[];
-  }>({
-    fearGreed: 'Loading...',
+  const [macroData, setMacroData] = useState<MacroData>({
+    gdp: 'N/A',
+    cpi: 'N/A',
+    unemployment: 'N/A',
+    fearGreed: 'Neutral',
     fearGreedValue: '0',
-    vix: 'Loading...',
-    recessionRisk: 'Loading...',
-    centralBanks: [],
+    vix: 'N/A',
+    recessionRisk: 'Low',
+    centralBanks: []
   });
+
+  const [gdpData, setGdpData] = useState<FREDObservation[]>([]);
+  const [cpiData, setCpiData] = useState<FREDObservation[]>([]);
+  const [unemploymentData, setUnemploymentData] = useState<FREDObservation[]>([]);
+  const [vix, setVix] = useState<string>('N/A');
+  const [loading, setLoading] = useState<boolean>(true);
 
   // ✅ Local API route fetch instead of direct call to FRED
   const fetchRateFromFRED = async (seriesId: string): Promise<string> => {
@@ -52,40 +66,54 @@ const MacroWatch = () => {
     }
   };
 
-  const fetchFREDData = useCallback(async () => {
+  const fetchFREDData = async (seriesId: string): Promise<FREDObservation[]> => {
     try {
-      const response = await fetch(
-        `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${process.env.NEXT_PUBLIC_FRED_API_KEY}&file_type=json`
-      );
-      if (!response.ok) {
-        throw new Error(`FRED API error: ${response.status}`);
-      }
+      const response = await fetch(`/api/fred?series_id=${seriesId}`);
       const data: FREDResponse = await response.json();
-      if (!data.observations || !Array.isArray(data.observations)) {
-        throw new Error('Invalid FRED API response format');
-      }
-      setObservations(data.observations);
+      return data.observations;
     } catch (error) {
-      console.error('Error fetching FRED data:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch FRED data');
+      console.error(`Error fetching FRED data for ${seriesId}:`, error);
+      return [];
     }
-  }, [seriesId]);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Fetch GDP data
+        const gdpData = await fetchFREDData('GDP');
+        setGdpData(gdpData);
+
+        // Fetch CPI data
+        const cpiData = await fetchFREDData('CPIAUCSL');
+        setCpiData(cpiData);
+
+        // Fetch Unemployment data
+        const unemploymentData = await fetchFREDData('UNRATE');
+        setUnemploymentData(unemploymentData);
+
+        // VIX (proxy)
+        let vixValue = 'N/A';
+        try {
+          const proxyRes = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/^VIX'));
+          if (!proxyRes.ok) {
+            throw new Error('Failed to fetch VIX data');
+          }
+          const proxyJson = await proxyRes.json();
+          const vixJson = JSON.parse(proxyJson.contents);
+          vixValue = vixJson?.chart?.result?.[0]?.meta?.regularMarketPrice || 'N/A';
+          setVix(vixValue);
+        } catch (vixError) {
+          console.error('Error fetching VIX data:', vixError);
+          setVix('N/A');
+        }
+
         // Fear & Greed Index
         const fgRes = await fetch('https://api.alternative.me/fng/?limit=1');
         const fgData = await fgRes.json();
         const fgItem = fgData?.data?.[0] || {};
         const fearGreedValue = fgItem.value || '0';
         const fearGreedClassification = fgItem.value_classification || 'Neutral';
-
-        // VIX (proxy)
-        const proxyRes = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/^VIX'));
-        const proxyJson = await proxyRes.json();
-        const vixJson = JSON.parse(proxyJson.contents);
-        const vixClose = vixJson?.chart?.result?.[0]?.meta?.regularMarketPrice || 'N/A';
 
         // FRED Rates via local proxy
         const fed = await fetchRateFromFRED('FEDFUNDS');
@@ -100,21 +128,27 @@ const MacroWatch = () => {
           { name: 'RBA', rate: rba, stance: parseFloat(rba) >= 4 ? '🦅 Hawkish' : '🕊️ Dovish' }
         ];
 
+        // Update the state with all the data
         setMacroData({
+          gdp: gdpData[gdpData.length - 1]?.value || 'N/A',
+          cpi: cpiData[cpiData.length - 1]?.value || 'N/A',
+          unemployment: unemploymentData[unemploymentData.length - 1]?.value || 'N/A',
           fearGreed: fearGreedClassification,
           fearGreedValue,
-          vix: vixClose.toString(),
+          vix: vixValue.toString(),
           recessionRisk: 'Low',
           centralBanks: banks
         });
-      } catch (err) {
-        console.error('Error fetching macro data:', err);
+
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError('Failed to fetch data. Please try again later.');
+        setLoading(false);
       }
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 60000);
-    return () => clearInterval(interval);
   }, []);
 
   return (
