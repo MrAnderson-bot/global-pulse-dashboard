@@ -106,6 +106,11 @@ interface CryptoPanicResponse {
   results: CryptoPanicItem[];
 }
 
+interface ApiError {
+  message: string;
+  status?: number;
+}
+
 export default function GlobalPulseFeed() {
   const [headlines, setHeadlines] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,8 +150,9 @@ export default function GlobalPulseFeed() {
             });
           }
         });
-      } catch (err) {
-        console.error('NewsData fetch error:', err);
+      } catch (error: unknown) {
+        const err = error as Error;
+        console.error('NewsData fetch error:', err.message);
       }
 
       // GNews API - Temporarily disabled due to API issues
@@ -193,8 +199,9 @@ export default function GlobalPulseFeed() {
             });
           }
         });
-      } catch (err) {
-        console.error('NYT fetch error:', err);
+      } catch (error: unknown) {
+        const err = error as Error;
+        console.error('NYT fetch error:', err.message);
       }
 
       // Add CryptoPanic as a fallback
@@ -217,8 +224,9 @@ export default function GlobalPulseFeed() {
         } else {
           console.warn('CryptoPanic API error:', cryptoRes.status);
         }
-      } catch (err) {
-        console.warn('CryptoPanic fetch error:', err);
+      } catch (error: unknown) {
+        const err = error as Error;
+        console.warn('CryptoPanic fetch error:', err.message);
       }
 
       console.log('Total results before deduplication:', allResults.length);
@@ -244,9 +252,10 @@ export default function GlobalPulseFeed() {
 
       console.log('Final results:', enhancedResults);
       setHeadlines(enhancedResults);
-    } catch (err) {
+    } catch (error: unknown) {
+      const err = error as Error;
       console.error('Detailed error:', err);
-      setError(`Failed to fetch news: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setError(`Failed to fetch news: ${err.message}`);
     } finally {
       setLoading(false);
     }
