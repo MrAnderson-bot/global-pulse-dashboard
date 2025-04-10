@@ -1,0 +1,20 @@
+module.exports = {
+  extends: 'next/core-web-vitals',
+  rules: {
+    '@typescript-eslint/no-explicit-any': 'off'
+  },
+  overrides: [
+    {
+      files: ['pages/api/**/*.ts'],
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off'
+      }
+    },
+    {
+      files: ['components/**/*.tsx'],
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off'
+      }
+    }
+  ]
+} 
