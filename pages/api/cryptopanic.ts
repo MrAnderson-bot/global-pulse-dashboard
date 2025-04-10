@@ -18,9 +18,11 @@ interface ErrorResponse {
   error: string;
 }
 
+type ApiResponse = CryptoPanicResponse | ErrorResponse;
+
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<CryptoPanicResponse | ErrorResponse>
+  res: NextApiResponse<ApiResponse>
 ) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -48,4 +50,3 @@ export default async function handler(
     res.status(500).json({ error: 'Failed to fetch CryptoPanic data' });
   }
 }
-  
