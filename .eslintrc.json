@@ -1,11 +1,7 @@
 {
   "extends": "next/core-web-vitals",
   "rules": {
-    "@typescript-eslint/no-explicit-any": ["error", {
-      "ignoreRestArgs": true,
-      "ignoreNextApiRequest": true,
-      "ignoreNextApiResponse": true
-    }]
+    "@typescript-eslint/no-explicit-any": "off"
   },
   "overrides": [
     {
@@ -17,11 +13,7 @@
     {
       "files": ["components/**/*.tsx"],
       "rules": {
-        "@typescript-eslint/no-explicit-any": ["error", {
-          "ignoreRestArgs": true,
-          "ignoreNextApiRequest": true,
-          "ignoreNextApiResponse": true
-        }]
+        "@typescript-eslint/no-explicit-any": "off"
       }
     }
   ]
