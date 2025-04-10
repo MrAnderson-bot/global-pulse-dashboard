@@ -27,7 +27,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<CryptoPanicResponse | { error: string }>
 ) {
-  const { filter, currencies, regions, kind, public } = req.query;
+  const { filter, currencies, regions, kind, isPublic } = req.query;
   const auth = req.headers.authorization;
 
   if (!auth) {
@@ -36,7 +36,7 @@ export default async function handler(
 
   try {
     const response = await fetch(
-      `https://cryptopanic.com/api/v1/posts/?auth_token=${auth}&public=true&filter=${filter || 'hot'}&currencies=${currencies || 'BTC'}&regions=${regions || 'en'}&kind=${kind || 'news'}`,
+      `https://cryptopanic.com/api/v1/posts/?auth_token=${auth}&public=${isPublic || 'true'}&filter=${filter || 'hot'}&currencies=${currencies || 'BTC'}&regions=${regions || 'en'}&kind=${kind || 'news'}`,
       {
         headers: {
           'Content-Type': 'application/json',

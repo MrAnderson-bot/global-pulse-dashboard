@@ -122,7 +122,7 @@ interface CryptoPanicResponse {
 }
 
 interface ApiError {
-  message: string;
+  error: string;
   status?: number;
 }
 
