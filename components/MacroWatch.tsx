@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 
 // Types
 type Bank = {
@@ -12,7 +12,15 @@ interface FREDObservation {
   date: string;
 }
 
+interface FREDResponse {
+  observations: FREDObservation[];
+}
+
 const MacroWatch = () => {
+  const [seriesId, setSeriesId] = useState('GDP');
+  const [observations, setObservations] = useState<FREDObservation[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
   const [macroData, setMacroData] = useState<{
     fearGreed: string;
     fearGreedValue: string;
@@ -43,6 +51,25 @@ const MacroWatch = () => {
       return 'Error';
     }
   };
+
+  const fetchFREDData = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${process.env.NEXT_PUBLIC_FRED_API_KEY}&file_type=json`
+      );
+      if (!response.ok) {
+        throw new Error(`FRED API error: ${response.status}`);
+      }
+      const data: FREDResponse = await response.json();
+      if (!data.observations || !Array.isArray(data.observations)) {
+        throw new Error('Invalid FRED API response format');
+      }
+      setObservations(data.observations);
+    } catch (error) {
+      console.error('Error fetching FRED data:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch FRED data');
+    }
+  }, [seriesId]);
 
   useEffect(() => {
     const fetchData = async () => {
