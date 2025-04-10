@@ -20,6 +20,11 @@ interface ErrorResponse {
 
 type ApiResponse = CryptoPanicResponse | ErrorResponse;
 
+type CryptoPanicError = {
+  message: string;
+  status?: number;
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ApiResponse>
@@ -34,13 +39,20 @@ export default async function handler(
     );
     
     if (!response.ok) {
-      throw new Error(`CryptoPanic API error: ${response.status}`);
+      const error: CryptoPanicError = {
+        message: `CryptoPanic API error: ${response.status}`,
+        status: response.status
+      };
+      throw error;
     }
     
     const data: CryptoPanicResponse = await response.json();
     
     if (!data.results || !Array.isArray(data.results)) {
-      throw new Error('Invalid response format from CryptoPanic API');
+      const error: CryptoPanicError = {
+        message: 'Invalid response format from CryptoPanic API'
+      };
+      throw error;
     }
 
     res.status(200).json(data);

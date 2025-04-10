@@ -54,6 +54,46 @@ const sourceIcons: Record<string, string> = {
   'CryptoPanic': '₿'
 };
 
+interface NewsDataItem {
+  title: string;
+  link: string;
+  source_id: string;
+  pubDate: string;
+  image_url?: string;
+}
+
+interface GNewsItem {
+  title: string;
+  url: string;
+  source: {
+    name: string;
+  };
+  publishedAt: string;
+  image?: string;
+}
+
+interface NYTItem {
+  title: string;
+  url: string;
+  published_date: string;
+  multimedia?: Array<{
+    url: string;
+  }>;
+}
+
+interface CryptoPanicItem {
+  title: string;
+  url: string;
+  source?: {
+    title: string;
+  };
+  published_at: string;
+}
+
+interface CryptoPanicResponse {
+  results: CryptoPanicItem[];
+}
+
 export default function GlobalPulseFeed() {
   const [headlines, setHeadlines] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,26 +119,22 @@ export default function GlobalPulseFeed() {
       // NewsData API
       try {
         console.log('Fetching from NewsData...');
-        const newsDataRes = await fetch(`https://newsdata.io/api/1/news?apikey=pub_7945834140948df0310ed8202eaa8014430b7&language=en&category=business,top,technology`);
-        if (newsDataRes.ok) {
-          const newsData = await newsDataRes.json();
-          console.log('NewsData response:', newsData);
-          (newsData.results || []).forEach((item: any) => {
-            if (keywords.some((kw) => item.title?.toLowerCase().includes(kw))) {
-              allResults.push({
-                title: item.title,
-                link: item.link,
-                category: categorize(item.title),
-                source_id: `[NewsData] ${item.source_id}`,
-                pubDate: item.pubDate,
-              });
-            }
-          });
-        } else {
-          console.warn('NewsData API error:', newsDataRes.status);
-        }
+        const res = await fetch(`https://newsdata.io/api/1/news?apikey=pub_7945834140948df0310ed8202eaa8014430b7&language=en&category=business,top,technology`);
+        const data = await res.json();
+        console.log('NewsData response:', data);
+        (data.results || []).forEach((item: NewsDataItem) => {
+          if (keywords.some((kw) => item.title?.toLowerCase().includes(kw))) {
+            allResults.push({
+              title: item.title,
+              link: item.link,
+              category: categorize(item.title),
+              source_id: `[NewsData] ${item.source_id}`,
+              pubDate: item.pubDate,
+            });
+          }
+        });
       } catch (err) {
-        console.warn('NewsData fetch error:', err);
+        console.error('NewsData fetch error:', err);
       }
 
       // GNews API - Temporarily disabled due to API issues
@@ -131,26 +167,22 @@ export default function GlobalPulseFeed() {
       // NYT API
       try {
         console.log('Fetching from NYT...');
-        const nytRes = await fetch(`https://api.nytimes.com/svc/topstories/v2/business.json?api-key=DR3BcKVqEKlHy5VPbJd1IVqi2A0YRVac`);
-        if (nytRes.ok) {
-          const nytData = await nytRes.json();
-          console.log('NYT response:', nytData);
-          (nytData.results || []).forEach((item: any) => {
-            if (keywords.some((kw) => item.title?.toLowerCase().includes(kw))) {
-              allResults.push({
-                title: item.title,
-                link: item.url,
-                category: categorize(item.title),
-                source_id: '[NYT] New York Times',
-                pubDate: item.published_date,
-              });
-            }
-          });
-        } else {
-          console.warn('NYT API error:', nytRes.status);
-        }
+        const res = await fetch(`https://api.nytimes.com/svc/topstories/v2/business.json?api-key=DR3BcKVqEKlHy5VPbJd1IVqi2A0YRVac`);
+        const data = await res.json();
+        console.log('NYT response:', data);
+        (data.results || []).forEach((item: NYTItem) => {
+          if (keywords.some((kw) => item.title?.toLowerCase().includes(kw))) {
+            allResults.push({
+              title: item.title,
+              link: item.url,
+              category: categorize(item.title),
+              source_id: '[NYT] New York Times',
+              pubDate: item.published_date,
+            });
+          }
+        });
       } catch (err) {
-        console.warn('NYT fetch error:', err);
+        console.error('NYT fetch error:', err);
       }
 
       // Add CryptoPanic as a fallback
@@ -158,8 +190,8 @@ export default function GlobalPulseFeed() {
         console.log('Fetching from CryptoPanic...');
         const cryptoRes = await fetch(`/api/cryptopanic`);
         if (cryptoRes.ok) {
-          const cryptoData = await cryptoRes.json();
-          (cryptoData.results || []).forEach((item: any) => {
+          const cryptoData: CryptoPanicResponse = await cryptoRes.json();
+          (cryptoData.results || []).forEach((item: CryptoPanicItem) => {
             if (item?.title && item?.url && keywords.some((kw) => item.title.toLowerCase().includes(kw))) {
               allResults.push({
                 title: item.title,
