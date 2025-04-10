@@ -1,64 +1,57 @@
 // pages/api/cryptopanic.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-interface CryptoPanicPost {
-  title: string;
-  url: string;
-  source: {
-    title: string;
-  };
-  published_at: string;
-}
-
 interface CryptoPanicResponse {
-  results: CryptoPanicPost[];
+  results: Array<{
+    title: string;
+    url: string;
+    published_at: string;
+    domain: string;
+    votes: {
+      negative: number;
+      positive: number;
+      important: number;
+      liked: number;
+      disliked: number;
+      lol: number;
+      toxic: number;
+      saved: number;
+      comments: number;
+    };
+  }>;
+  next: string | null;
+  count: number;
 }
-
-interface ErrorResponse {
-  error: string;
-}
-
-type ApiResponse = CryptoPanicResponse | ErrorResponse;
-
-type CryptoPanicError = {
-  message: string;
-  status?: number;
-};
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<ApiResponse>
+  res: NextApiResponse<CryptoPanicResponse | { error: string }>
 ) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  const { filter, currencies, regions, kind, public } = req.query;
+  const auth = req.headers.authorization;
+
+  if (!auth) {
+    return res.status(401).json({ error: 'Authorization header is required' });
   }
 
   try {
     const response = await fetch(
-      'https://cryptopanic.com/api/v1/posts/?auth_token=ca717c350acffacc2a3ca865d63523f608f96d7a&public=true'
+      `https://cryptopanic.com/api/v1/posts/?auth_token=${auth}&public=true&filter=${filter || 'hot'}&currencies=${currencies || 'BTC'}&regions=${regions || 'en'}&kind=${kind || 'news'}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
     );
-    
+
     if (!response.ok) {
-      const error: CryptoPanicError = {
-        message: `CryptoPanic API error: ${response.status}`,
-        status: response.status
-      };
-      throw error;
-    }
-    
-    const data: CryptoPanicResponse = await response.json();
-    
-    if (!data.results || !Array.isArray(data.results)) {
-      const error: CryptoPanicError = {
-        message: 'Invalid response format from CryptoPanic API'
-      };
-      throw error;
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
+    const data: CryptoPanicResponse = await response.json();
     res.status(200).json(data);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    console.error('Error in proxying CryptoPanic:', errorMessage);
+    console.error('Error fetching CryptoPanic data:', error);
     res.status(500).json({ error: 'Failed to fetch CryptoPanic data' });
   }
 }

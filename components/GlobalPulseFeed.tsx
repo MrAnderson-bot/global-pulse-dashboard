@@ -54,31 +54,40 @@ const sourceIcons: Record<string, string> = {
   'CryptoPanic': '₿'
 };
 
-interface NewsDataItem {
-  title: string;
-  link: string;
-  source_id: string;
-  pubDate: string;
-  image_url?: string;
-}
-
-interface GNewsItem {
-  title: string;
-  url: string;
-  source: {
-    name: string;
-  };
-  publishedAt: string;
-  image?: string;
-}
-
-interface NYTItem {
-  title: string;
-  url: string;
-  published_date: string;
-  multimedia?: Array<{
-    url: string;
+interface NewsDataResponse {
+  results: Array<{
+    title: string;
+    link: string;
+    description: string;
+    pubDate: string;
+    source_id: string;
   }>;
+}
+
+interface GNewsResponse {
+  articles: Array<{
+    title: string;
+    url: string;
+    description: string;
+    publishedAt: string;
+    source: {
+      name: string;
+    };
+  }>;
+}
+
+interface NYTResponse {
+  response: {
+    docs: Array<{
+      headline: {
+        main: string;
+      };
+      web_url: string;
+      abstract: string;
+      pub_date: string;
+      source: string;
+    }>;
+  };
 }
 
 interface CryptoPanicItem {
@@ -90,20 +99,26 @@ interface CryptoPanicItem {
   published_at: string;
 }
 
-interface NewsDataResponse {
-  results: NewsDataItem[];
-}
-
-interface GNewsResponse {
-  articles: GNewsItem[];
-}
-
-interface NYTResponse {
-  results: NYTItem[];
-}
-
 interface CryptoPanicResponse {
-  results: CryptoPanicItem[];
+  results: Array<{
+    title: string;
+    url: string;
+    published_at: string;
+    domain: string;
+    votes: {
+      negative: number;
+      positive: number;
+      important: number;
+      liked: number;
+      disliked: number;
+      lol: number;
+      toxic: number;
+      saved: number;
+      comments: number;
+    };
+  }>;
+  next: string | null;
+  count: number;
 }
 
 interface ApiError {
@@ -111,11 +126,20 @@ interface ApiError {
   status?: number;
 }
 
+interface NYTArticle {
+  title: string;
+  url: string;
+  description: string;
+  published_date: string;
+  source: string;
+}
+
 export default function GlobalPulseFeed() {
   const [headlines, setHeadlines] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [nytArticles, setNYTArticles] = useState<NYTArticle[]>([]);
 
   const fetchNews = useCallback(async () => {
     setLoading(true);
@@ -136,10 +160,10 @@ export default function GlobalPulseFeed() {
       // NewsData API
       try {
         console.log('Fetching from NewsData...');
-        const res = await fetch(`https://newsdata.io/api/1/news?apikey=pub_7945834140948df0310ed8202eaa8014430b7&language=en&category=business,top,technology`);
+        const res = await fetch('/api/newsdata');
         const data: NewsDataResponse = await res.json();
         console.log('NewsData response:', data);
-        (data.results || []).forEach((item: NewsDataItem) => {
+        (data.results || []).forEach((item: { title: string; link: string; description: string; pubDate: string; source_id: string; }) => {
           if (keywords.some((kw) => item.title?.toLowerCase().includes(kw))) {
             allResults.push({
               title: item.title,
@@ -159,6 +183,7 @@ export default function GlobalPulseFeed() {
       /*
       try {
         console.log('Fetching from GNews...');
+        const gnewsRes = await fetch('/api/gnews');
         const gnewsRes = await fetch(`https://gnews.io/api/v4/top-headlines?token=0775ec62695f4a9575354bff4a759fcf&lang=en&topic=business`);
         if (gnewsRes.ok) {
           const gnewsData: GNewsResponse = await gnewsRes.json();
@@ -185,20 +210,16 @@ export default function GlobalPulseFeed() {
       // NYT API
       try {
         console.log('Fetching from NYT...');
-        const res = await fetch(`https://api.nytimes.com/svc/topstories/v2/business.json?api-key=DR3BcKVqEKlHy5VPbJd1IVqi2A0YRVac`);
-        const data: NYTResponse = await res.json();
+        const response = await fetch('/api/nyt');
+        const data: NYTResponse = await response.json();
         console.log('NYT response:', data);
-        (data.results || []).forEach((item: NYTItem) => {
-          if (keywords.some((kw) => item.title?.toLowerCase().includes(kw))) {
-            allResults.push({
-              title: item.title,
-              link: item.url,
-              category: categorize(item.title),
-              source_id: '[NYT] New York Times',
-              pubDate: item.published_date,
-            });
-          }
-        });
+        setNYTArticles(data.response.docs.map(doc => ({
+          title: doc.headline.main,
+          url: doc.web_url,
+          description: doc.abstract,
+          published_date: doc.pub_date,
+          source: doc.source
+        })));
       } catch (error: unknown) {
         const err = error as Error;
         console.error('NYT fetch error:', err.message);
