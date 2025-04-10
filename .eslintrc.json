@@ -6,5 +6,23 @@
       "ignoreNextApiRequest": true,
       "ignoreNextApiResponse": true
     }]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["pages/api/**/*.ts"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": ["components/**/*.tsx"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": ["error", {
+          "ignoreRestArgs": true,
+          "ignoreNextApiRequest": true,
+          "ignoreNextApiResponse": true
+        }]
+      }
+    }
+  ]
 } 
