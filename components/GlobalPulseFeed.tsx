@@ -94,6 +94,18 @@ interface CryptoPanicResponse {
   results: CryptoPanicItem[];
 }
 
+interface NewsDataResponse {
+  results: NewsDataItem[];
+}
+
+interface GNewsResponse {
+  articles: GNewsItem[];
+}
+
+interface NYTResponse {
+  results: NYTItem[];
+}
+
 export default function GlobalPulseFeed() {
   const [headlines, setHeadlines] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,7 +132,7 @@ export default function GlobalPulseFeed() {
       try {
         console.log('Fetching from NewsData...');
         const res = await fetch(`https://newsdata.io/api/1/news?apikey=pub_7945834140948df0310ed8202eaa8014430b7&language=en&category=business,top,technology`);
-        const data = await res.json();
+        const data: NewsDataResponse = await res.json();
         console.log('NewsData response:', data);
         (data.results || []).forEach((item: NewsDataItem) => {
           if (keywords.some((kw) => item.title?.toLowerCase().includes(kw))) {
@@ -143,9 +155,9 @@ export default function GlobalPulseFeed() {
         console.log('Fetching from GNews...');
         const gnewsRes = await fetch(`https://gnews.io/api/v4/top-headlines?token=0775ec62695f4a9575354bff4a759fcf&lang=en&topic=business`);
         if (gnewsRes.ok) {
-          const gnewsData = await gnewsRes.json();
+          const gnewsData: GNewsResponse = await gnewsRes.json();
           console.log('GNews response:', gnewsData);
-          (gnewsData.articles || []).forEach((item: any) => {
+          (gnewsData.articles || []).forEach((item: GNewsItem) => {
             if (keywords.some((kw) => item.title?.toLowerCase().includes(kw))) {
               allResults.push({
                 title: item.title,
@@ -168,7 +180,7 @@ export default function GlobalPulseFeed() {
       try {
         console.log('Fetching from NYT...');
         const res = await fetch(`https://api.nytimes.com/svc/topstories/v2/business.json?api-key=DR3BcKVqEKlHy5VPbJd1IVqi2A0YRVac`);
-        const data = await res.json();
+        const data: NYTResponse = await res.json();
         console.log('NYT response:', data);
         (data.results || []).forEach((item: NYTItem) => {
           if (keywords.some((kw) => item.title?.toLowerCase().includes(kw))) {

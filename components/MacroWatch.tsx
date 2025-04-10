@@ -7,6 +7,11 @@ type Bank = {
   stance: string;
 };
 
+interface FREDObservation {
+  value: string;
+  date: string;
+}
+
 const MacroWatch = () => {
   const [macroData, setMacroData] = useState<{
     fearGreed: string;
@@ -31,7 +36,7 @@ const MacroWatch = () => {
         console.error(`Invalid FRED data structure for ${seriesId}:`, data);
         return 'N/A';
       }
-      const latest = data.observations.reverse().find((o: any) => o.value !== '.');
+      const latest = data.observations.reverse().find((o: FREDObservation) => o.value !== '.');
       return latest ? `${parseFloat(latest.value).toFixed(2)}%` : 'N/A';
     } catch (err) {
       console.error(`Local FRED proxy error for ${seriesId}:`, err);
