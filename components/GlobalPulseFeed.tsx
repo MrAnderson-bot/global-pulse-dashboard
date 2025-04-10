@@ -90,10 +90,6 @@ interface CryptoPanicItem {
   published_at: string;
 }
 
-interface CryptoPanicResponse {
-  results: CryptoPanicItem[];
-}
-
 interface NewsDataResponse {
   results: NewsDataItem[];
 }
@@ -104,6 +100,10 @@ interface GNewsResponse {
 
 interface NYTResponse {
   results: NYTItem[];
+}
+
+interface CryptoPanicResponse {
+  results: CryptoPanicItem[];
 }
 
 export default function GlobalPulseFeed() {
